@@ -61,12 +61,12 @@ final) from two different git refs.
 
 ## Checkpoint 5: Impacted Target Computation & Output
 
-- [ ] Execute `get-impacted-targets` with the two hash files
-- [ ] Pass through optional flags (target-type, exclude-external, dep-edges)
-- [ ] Write results to a temp file
-- [ ] Parse the output (newline-separated list or JSON depending on
+- [x] Execute `get-impacted-targets` with the two hash files
+- [x] Pass through optional flags (target-type, exclude-external, dep-edges)
+- [x] Write results to a temp file
+- [x] Parse the output (newline-separated list or JSON depending on
       `include-distance`)
-- [ ] Set all action outputs:
+- [x] Set all action outputs:
   - `impacted-targets` (string)
   - `impacted-targets-file` (path)
   - `has-changes` (boolean string)

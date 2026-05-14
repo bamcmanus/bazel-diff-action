@@ -30764,11 +30764,13 @@ var __webpack_exports__ = {};
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
   jz: () => (/* binding */ buildGenerateHashesArgs),
+  wu: () => (/* binding */ buildGetImpactedTargetArgs),
   QV: () => (/* binding */ downloadBazelDiff),
   DZ: () => (/* binding */ getCurrentRef),
   tG: () => (/* binding */ parseGitHubEvent),
   JN: () => (/* binding */ resolveBaseRef),
   eF: () => (/* binding */ run),
+  AT: () => (/* binding */ verifyBazel),
   Ax: () => (/* binding */ verifyJava),
   fo: () => (/* binding */ verifyNotShallow)
 });
@@ -30920,16 +30922,16 @@ function file_command_issueFileCommand(command, message) {
     if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
     }
-    if (!fs.existsSync(filePath)) {
+    if (!external_fs_namespaceObject.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    fs.appendFileSync(filePath, `${toCommandValue(message)}${os.EOL}`, {
+    external_fs_namespaceObject.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_namespaceObject.EOL}`, {
         encoding: 'utf8'
     });
 }
 function file_command_prepareKeyValueMessage(key, value) {
-    const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
-    const convertedValue = toCommandValue(value);
+    const delimiter = `ghadelimiter_${external_crypto_namespaceObject.randomUUID()}`;
+    const convertedValue = utils_toCommandValue(value);
     // These should realistically never happen, but just in case someone finds a
     // way to exploit uuid generation let's not allow keys or values that contain
     // the delimiter.
@@ -30939,7 +30941,7 @@ function file_command_prepareKeyValueMessage(key, value) {
     if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
     }
-    return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+    return `${key}<<${delimiter}${external_os_namespaceObject.EOL}${convertedValue}${external_os_namespaceObject.EOL}${delimiter}`;
 }
 //# sourceMappingURL=file-command.js.map
 ;// CONCATENATED MODULE: external "path"
@@ -33563,10 +33565,10 @@ function getBooleanInput(name, options) {
 function setOutput(name, value) {
     const filePath = process.env['GITHUB_OUTPUT'] || '';
     if (filePath) {
-        return issueFileCommand('OUTPUT', prepareKeyValueMessage(name, value));
+        return file_command_issueFileCommand('OUTPUT', file_command_prepareKeyValueMessage(name, value));
     }
-    process.stdout.write(os.EOL);
-    issueCommand('set-output', { name }, toCommandValue(value));
+    process.stdout.write(external_os_namespaceObject.EOL);
+    command_issueCommand('set-output', { name }, utils_toCommandValue(value));
 }
 /**
  * Enables or disables the echoing of commands into stdout for the rest of the step.
@@ -34540,6 +34542,16 @@ async function verifyJava() {
   }
 }
 
+async function verifyBazel(bazelPath) {
+  try {
+    await exec_exec(bazelPath, ["--version"]);
+  } catch (error) {
+    throw new Error(
+      `Bazel is required but not found on the runner: ${error.message}`,
+    );
+  }
+}
+
 async function verifyNotShallow() {
   let stdout = "";
   await exec_exec("git", ["rev-parse", "--is-shallow-repository"], {
@@ -34628,6 +34640,33 @@ function buildGenerateHashesArgs(
   return args;
 }
 
+function buildGetImpactedTargetArgs(
+  jarPath,
+  workspacePath,
+  startingHashesPath,
+  finalHashesPath,
+  outputPath,
+  options,
+) {
+  const args = [
+    "-jar",
+    jarPath,
+    "get-impacted-targets",
+    "-w",
+    workspacePath,
+    "-o",
+    outputPath,
+    "-fh",
+    finalHashesPath,
+    "-sh",
+    startingHashesPath,
+  ];
+  if (options.excludeExternal) args.push("--excludeExternalTargets");
+  if (options.targetType) args.push("-tt", options.targetType);
+  if (options.depEdgesFile) args.push("--depEdgesFile", options.depEdgesFile);
+  return args;
+}
+
 async function run() {
   let originalRef;
   try {
@@ -34635,17 +34674,19 @@ async function run() {
 
     await verifyJava();
 
+    const bazelPath = getInput("bazel-path");
+    await verifyBazel(bazelPath);
+
     await verifyNotShallow();
 
     const version = getInput("bazel-diff-version");
     const jarPath = await downloadBazelDiff(version);
     info(`bazel-diff downloaded to ${jarPath}`);
 
-    // generate hashes
+    // generate head hashes
     originalRef = await getCurrentRef();
     const headHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "head_hashes.json");
     const workspacePath = getInput("workspace-path");
-    const bazelPath = getInput("bazel-path");
     const options = Object.freeze({
       useCquery: getInput("use-cquery") === "true",
       excludeExternal: getInput("exclude-external-targets") === "true",
@@ -34667,11 +34708,10 @@ async function run() {
     await exec_exec("java", headArgs);
     info(`Calculated hashes for original ref: ${originalRef}`);
 
-    // checkout base
+    // generate base hashes
     const baseRef = await resolveBaseRef();
     info(`Checking out base ref: ${baseRef}`);
     await exec_exec("git", ["checkout", baseRef]);
-    // generate hashes
     const baseHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "base_hashes.json");
     const baseArgs = buildGenerateHashesArgs(
       jarPath,
@@ -34683,7 +34723,33 @@ async function run() {
     await exec_exec("java", baseArgs);
     info(`Calculated hashes for base ref`);
 
-    // run bazel-diff
+    // compute impacted targets
+    const fileType = options.depEdgesFile ? "json" : "txt";
+    const impactedTargetsPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), `impacted_targets.${fileType}`);
+    const diffArgs = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      baseHashesPath,
+      headHashesPath,
+      impactedTargetsPath,
+      options,
+    );
+    await exec_exec("java", diffArgs);
+
+    // set outputs
+    const output = await (0,promises_namespaceObject.readFile)(impactedTargetsPath, "utf8");
+    const targets = output.trim();
+    const targetList = targets === "" ? [] : targets.split("\n");
+    setOutput("impacted-targets", targets);
+    setOutput("impacted-targets-file", impactedTargetsPath);
+    if (options.depEdgesFile) {
+      const parsed = JSON.parse(output);
+      setOutput("has-changes", (parsed.length > 0).toString());
+      setOutput("target-count", parsed.length.toString());
+    } else {
+      setOutput("has-changes", (targetList.length > 0).toString());
+      setOutput("target-count", targetList.length.toString());
+    }
   } catch (error) {
     setFailed(error.message);
   } finally {
@@ -34696,11 +34762,13 @@ async function run() {
 run();
 
 var __webpack_exports__buildGenerateHashesArgs = __webpack_exports__.jz;
+var __webpack_exports__buildGetImpactedTargetArgs = __webpack_exports__.wu;
 var __webpack_exports__downloadBazelDiff = __webpack_exports__.QV;
 var __webpack_exports__getCurrentRef = __webpack_exports__.DZ;
 var __webpack_exports__parseGitHubEvent = __webpack_exports__.tG;
 var __webpack_exports__resolveBaseRef = __webpack_exports__.JN;
 var __webpack_exports__run = __webpack_exports__.eF;
+var __webpack_exports__verifyBazel = __webpack_exports__.AT;
 var __webpack_exports__verifyJava = __webpack_exports__.Ax;
 var __webpack_exports__verifyNotShallow = __webpack_exports__.fo;
-export { __webpack_exports__buildGenerateHashesArgs as buildGenerateHashesArgs, __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__getCurrentRef as getCurrentRef, __webpack_exports__parseGitHubEvent as parseGitHubEvent, __webpack_exports__resolveBaseRef as resolveBaseRef, __webpack_exports__run as run, __webpack_exports__verifyJava as verifyJava, __webpack_exports__verifyNotShallow as verifyNotShallow };
+export { __webpack_exports__buildGenerateHashesArgs as buildGenerateHashesArgs, __webpack_exports__buildGetImpactedTargetArgs as buildGetImpactedTargetArgs, __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__getCurrentRef as getCurrentRef, __webpack_exports__parseGitHubEvent as parseGitHubEvent, __webpack_exports__resolveBaseRef as resolveBaseRef, __webpack_exports__run as run, __webpack_exports__verifyBazel as verifyBazel, __webpack_exports__verifyJava as verifyJava, __webpack_exports__verifyNotShallow as verifyNotShallow };

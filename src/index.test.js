@@ -34,6 +34,8 @@ const {
   parseGitHubEvent,
   getCurrentRef,
   buildGenerateHashesArgs,
+  buildGetImpactedTargetArgs,
+  verifyBazel,
 } = await import("./index.js");
 
 describe("verifyJava", () => {
@@ -359,5 +361,124 @@ describe("buildGenerateHashesArgs", () => {
       options,
     );
     expect(result[result.length - 1]).toBe(outputPath);
+  });
+});
+
+describe("verifyBazel", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("succeeds when bazel is available", async () => {
+    mockExec.mockResolvedValue(0);
+    await expect(verifyBazel("bazel")).resolves.not.toThrow();
+    expect(mockExec).toHaveBeenCalledWith("bazel", ["--version"]);
+  });
+
+  it("uses custom bazel path", async () => {
+    mockExec.mockResolvedValue(0);
+    await expect(verifyBazel("/usr/local/bin/bazel")).resolves.not.toThrow();
+    expect(mockExec).toHaveBeenCalledWith("/usr/local/bin/bazel", [
+      "--version",
+    ]);
+  });
+
+  it("throws when bazel is not found", async () => {
+    mockExec.mockRejectedValue(new Error("Unable to locate executable"));
+    await expect(verifyBazel("bazel")).rejects.toThrow(
+      /Bazel is required but not found/,
+    );
+  });
+});
+
+describe("buildGetImpactedTargetArgs", () => {
+  const jarPath = "/tmp/bazel-diff.jar";
+  const workspacePath = ".";
+  const startingHashesPath = "/tmp/base_hashes.json";
+  const finalHashesPath = "/tmp/head_hashes.json";
+  const outputPath = "/tmp/impacted_targets.txt";
+
+  it("builds basic args with no options", () => {
+    const options = {
+      excludeExternal: false,
+      targetType: "",
+      depEdgesFile: "",
+    };
+    const result = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      startingHashesPath,
+      finalHashesPath,
+      outputPath,
+      options,
+    );
+    expect(result).toEqual([
+      "-jar",
+      "/tmp/bazel-diff.jar",
+      "get-impacted-targets",
+      "-w",
+      ".",
+      "-o",
+      "/tmp/impacted_targets.txt",
+      "-fh",
+      "/tmp/head_hashes.json",
+      "-sh",
+      "/tmp/base_hashes.json",
+    ]);
+  });
+
+  it("includes --excludeExternalTargets when enabled", () => {
+    const options = {
+      excludeExternal: true,
+      targetType: "",
+      depEdgesFile: "",
+    };
+    const result = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      startingHashesPath,
+      finalHashesPath,
+      outputPath,
+      options,
+    );
+    expect(result).toContain("--excludeExternalTargets");
+  });
+
+  it("includes target type filter", () => {
+    const options = {
+      excludeExternal: false,
+      targetType: "java_test",
+      depEdgesFile: "",
+    };
+    const result = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      startingHashesPath,
+      finalHashesPath,
+      outputPath,
+      options,
+    );
+    const ttIndex = result.indexOf("-tt");
+    expect(ttIndex).toBeGreaterThan(-1);
+    expect(result[ttIndex + 1]).toBe("java_test");
+  });
+
+  it("includes dep edges file", () => {
+    const options = {
+      excludeExternal: false,
+      targetType: "",
+      depEdgesFile: "/tmp/dep_edges.json",
+    };
+    const result = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      startingHashesPath,
+      finalHashesPath,
+      outputPath,
+      options,
+    );
+    const depIndex = result.indexOf("--depEdgesFile");
+    expect(depIndex).toBeGreaterThan(-1);
+    expect(result[depIndex + 1]).toBe("/tmp/dep_edges.json");
   });
 });

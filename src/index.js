@@ -15,6 +15,16 @@ export async function verifyJava() {
   }
 }
 
+export async function verifyBazel(bazelPath) {
+  try {
+    await exec.exec(bazelPath, ["--version"]);
+  } catch (error) {
+    throw new Error(
+      `Bazel is required but not found on the runner: ${error.message}`,
+    );
+  }
+}
+
 export async function verifyNotShallow() {
   let stdout = "";
   await exec.exec("git", ["rev-parse", "--is-shallow-repository"], {
@@ -103,6 +113,33 @@ export function buildGenerateHashesArgs(
   return args;
 }
 
+export function buildGetImpactedTargetArgs(
+  jarPath,
+  workspacePath,
+  startingHashesPath,
+  finalHashesPath,
+  outputPath,
+  options,
+) {
+  const args = [
+    "-jar",
+    jarPath,
+    "get-impacted-targets",
+    "-w",
+    workspacePath,
+    "-o",
+    outputPath,
+    "-fh",
+    finalHashesPath,
+    "-sh",
+    startingHashesPath,
+  ];
+  if (options.excludeExternal) args.push("--excludeExternalTargets");
+  if (options.targetType) args.push("-tt", options.targetType);
+  if (options.depEdgesFile) args.push("--depEdgesFile", options.depEdgesFile);
+  return args;
+}
+
 export async function run() {
   let originalRef;
   try {
@@ -110,17 +147,19 @@ export async function run() {
 
     await verifyJava();
 
+    const bazelPath = core.getInput("bazel-path");
+    await verifyBazel(bazelPath);
+
     await verifyNotShallow();
 
     const version = core.getInput("bazel-diff-version");
     const jarPath = await downloadBazelDiff(version);
     core.info(`bazel-diff downloaded to ${jarPath}`);
 
-    // generate hashes
+    // generate head hashes
     originalRef = await getCurrentRef();
     const headHashesPath = join(tmpdir(), "head_hashes.json");
     const workspacePath = core.getInput("workspace-path");
-    const bazelPath = core.getInput("bazel-path");
     const options = Object.freeze({
       useCquery: core.getInput("use-cquery") === "true",
       excludeExternal: core.getInput("exclude-external-targets") === "true",
@@ -142,11 +181,10 @@ export async function run() {
     await exec.exec("java", headArgs);
     core.info(`Calculated hashes for original ref: ${originalRef}`);
 
-    // checkout base
+    // generate base hashes
     const baseRef = await resolveBaseRef();
     core.info(`Checking out base ref: ${baseRef}`);
     await exec.exec("git", ["checkout", baseRef]);
-    // generate hashes
     const baseHashesPath = join(tmpdir(), "base_hashes.json");
     const baseArgs = buildGenerateHashesArgs(
       jarPath,
@@ -158,7 +196,33 @@ export async function run() {
     await exec.exec("java", baseArgs);
     core.info(`Calculated hashes for base ref`);
 
-    // run bazel-diff
+    // compute impacted targets
+    const fileType = options.depEdgesFile ? "json" : "txt";
+    const impactedTargetsPath = join(tmpdir(), `impacted_targets.${fileType}`);
+    const diffArgs = buildGetImpactedTargetArgs(
+      jarPath,
+      workspacePath,
+      baseHashesPath,
+      headHashesPath,
+      impactedTargetsPath,
+      options,
+    );
+    await exec.exec("java", diffArgs);
+
+    // set outputs
+    const output = await readFile(impactedTargetsPath, "utf8");
+    const targets = output.trim();
+    const targetList = targets === "" ? [] : targets.split("\n");
+    core.setOutput("impacted-targets", targets);
+    core.setOutput("impacted-targets-file", impactedTargetsPath);
+    if (options.depEdgesFile) {
+      const parsed = JSON.parse(output);
+      core.setOutput("has-changes", (parsed.length > 0).toString());
+      core.setOutput("target-count", parsed.length.toString());
+    } else {
+      core.setOutput("has-changes", (targetList.length > 0).toString());
+      core.setOutput("target-count", targetList.length.toString());
+    }
   } catch (error) {
     core.setFailed(error.message);
   } finally {
