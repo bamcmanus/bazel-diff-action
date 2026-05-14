@@ -34547,9 +34547,12 @@ async function verifyBazel(bazelPath) {
   try {
     await exec_exec(bazelPath, ["--version"]);
   } catch (error) {
-    throw new Error(`Bazel is required but not found on the runner: ${error.message}`, {
-      cause: error,
-    });
+    throw new Error(
+      `Bazel is required but not found on the runner: ${error.message}`,
+      {
+        cause: error,
+      },
+    );
   }
 }
 
@@ -34615,8 +34618,22 @@ async function getCurrentRef() {
   return ref.trim();
 }
 
-function buildGenerateHashesArgs(jarPath, workspacePath, bazelPath, outputPath, options) {
-  const args = ["-jar", jarPath, "generate-hashes", "-w", workspacePath, "-b", bazelPath];
+function buildGenerateHashesArgs(
+  jarPath,
+  workspacePath,
+  bazelPath,
+  outputPath,
+  options,
+) {
+  const args = [
+    "-jar",
+    jarPath,
+    "generate-hashes",
+    "-w",
+    workspacePath,
+    "-b",
+    bazelPath,
+  ];
   if (options.useCquery) args.push("--useCquery");
   if (options.excludeExternal) args.push("--excludeExternalTargets");
   if (options.targetType) args.push("-tt", options.targetType);
@@ -34683,7 +34700,9 @@ async function run() {
       startupOptions: getInput("bazel-startup-options"),
       commandOptions: getInput("bazel-command-options"),
       depEdgesFile:
-        getInput("include-distance") === "true" ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json") : "",
+        getInput("include-distance") === "true"
+          ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json")
+          : "",
     });
     if (options.depEdgesFile) tempFiles.push(options.depEdgesFile);
     const headArgs = buildGenerateHashesArgs(
