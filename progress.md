@@ -30,12 +30,12 @@ confirms it can execute.
 
 ## Checkpoint 3: Git Ref Resolution & Management
 
-- [ ] Implement auto-detection of base ref:
+- [x] Implement auto-detection of base ref:
   - PR events: read `pull_request.base.sha` from `GITHUB_EVENT_PATH`
   - Push events: use `before` SHA or fall back to `HEAD~1`
-- [ ] Accept explicit `base-ref` override from input
-- [ ] Implement ref save/restore logic (save current HEAD, restore in `finally`)
-- [ ] Handle edge cases: shallow clones (detect and fail with helpful message),
+- [x] Accept explicit `base-ref` override from input
+- [x] Implement ref save/restore logic (save current HEAD, restore in `finally`)
+- [x] Handle edge cases: shallow clones (detect and fail with helpful message),
       detached HEAD
 
 **Done when:** The action can determine the correct base and head refs for PR

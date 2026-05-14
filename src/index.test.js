@@ -26,8 +26,14 @@ jest.unstable_mockModule("fs/promises", () => ({
   readFile: mockReadFile,
 }));
 
-const { verifyJava, downloadBazelDiff, resolveBaseRef, parseGitHubEvent } =
-  await import("./index.js");
+const {
+  verifyJava,
+  verifyNotShallow,
+  downloadBazelDiff,
+  resolveBaseRef,
+  parseGitHubEvent,
+  getCurrentRef,
+} = await import("./index.js");
 
 describe("verifyJava", () => {
   beforeEach(() => {
@@ -44,6 +50,30 @@ describe("verifyJava", () => {
     mockExec.mockRejectedValue(new Error("Unable to locate executable"));
     await expect(verifyJava()).rejects.toThrow(
       /Java is required but not found/,
+    );
+  });
+});
+
+describe("verifyNotShallow", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("succeeds when repository is not shallow", async () => {
+    mockExec.mockImplementation((cmd, args, options) => {
+      options.listeners.stdout(Buffer.from("false\n"));
+      return Promise.resolve(0);
+    });
+    await expect(verifyNotShallow()).resolves.not.toThrow();
+  });
+
+  it("throws when repository is shallow", async () => {
+    mockExec.mockImplementation((cmd, args, options) => {
+      options.listeners.stdout(Buffer.from("true\n"));
+      return Promise.resolve(0);
+    });
+    await expect(verifyNotShallow()).rejects.toThrow(
+      /Repository is a shallow clone/,
     );
   });
 });
@@ -140,5 +170,35 @@ describe("resolveBaseRef", () => {
     delete process.env.GITHUB_EVENT_NAME;
     const result = await resolveBaseRef();
     expect(result).toBe("HEAD~1");
+  });
+});
+
+describe("getCurrentRef", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("returns the current HEAD sha", async () => {
+    mockExec.mockImplementation((cmd, args, options) => {
+      options.listeners.stdout(Buffer.from("abc123def456\n"));
+      return Promise.resolve(0);
+    });
+    const result = await getCurrentRef();
+    expect(result).toBe("abc123def456");
+    expect(mockExec).toHaveBeenCalledWith(
+      "git",
+      ["rev-parse", "HEAD"],
+      expect.objectContaining({ listeners: expect.any(Object) }),
+    );
+  });
+
+  it("handles multi-chunk stdout", async () => {
+    mockExec.mockImplementation((cmd, args, options) => {
+      options.listeners.stdout(Buffer.from("abc123"));
+      options.listeners.stdout(Buffer.from("def456\n"));
+      return Promise.resolve(0);
+    });
+    const result = await getCurrentRef();
+    expect(result).toBe("abc123def456");
   });
 });
