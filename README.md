@@ -1,5 +1,7 @@
 # bazel-diff-action
 
+[![CI](https://github.com/bamcmanus/bazel-diff/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/bamcmanus/bazel-diff/actions/workflows/ci.yaml)
+
 A GitHub Action that computes impacted Bazel targets between two Git revisions
 using [bazel-diff](https://github.com/Tinder/bazel-diff) by
 [Tinder](https://github.com/Tinder).
