@@ -2,6 +2,8 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 import { readFile } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 
 export async function verifyJava() {
   try {
@@ -75,6 +77,32 @@ export async function getCurrentRef() {
   return ref.trim();
 }
 
+export function buildGenerateHashesArgs(
+  jarPath,
+  workspacePath,
+  bazelPath,
+  outputPath,
+  options,
+) {
+  const args = [
+    "-jar",
+    jarPath,
+    "generate-hashes",
+    "-w",
+    workspacePath,
+    "-b",
+    bazelPath,
+  ];
+  if (options.useCquery) args.push("--useCquery");
+  if (options.excludeExternal) args.push("--excludeExternalTargets");
+  if (options.targetType) args.push("-tt", options.targetType);
+  if (options.startupOptions) args.push("-so", options.startupOptions);
+  if (options.commandOptions) args.push("-co", options.commandOptions);
+  if (options.depEdgesFile) args.push("--depEdgesFile", options.depEdgesFile);
+  args.push(outputPath);
+  return args;
+}
+
 export async function run() {
   let originalRef;
   try {
@@ -88,15 +116,48 @@ export async function run() {
     const jarPath = await downloadBazelDiff(version);
     core.info(`bazel-diff downloaded to ${jarPath}`);
 
-    originalRef = await getCurrentRef();
     // generate hashes
+    originalRef = await getCurrentRef();
+    const headHashesPath = join(tmpdir(), "head_hashes.json");
+    const workspacePath = core.getInput("workspace-path");
+    const bazelPath = core.getInput("bazel-path");
+    const options = Object.freeze({
+      useCquery: core.getInput("use-cquery") === "true",
+      excludeExternal: core.getInput("exclude-external-targets") === "true",
+      targetType: core.getInput("target-type"),
+      startupOptions: core.getInput("bazel-startup-options"),
+      commandOptions: core.getInput("bazel-command-options"),
+      depEdgesFile:
+        core.getInput("include-distance") === "true"
+          ? join(tmpdir(), "dep_edges.json")
+          : "",
+    });
+    const headArgs = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      headHashesPath,
+      options,
+    );
+    await exec.exec("java", headArgs);
     core.info(`Calculated hashes for original ref: ${originalRef}`);
+
     // checkout base
     const baseRef = await resolveBaseRef();
     core.info(`Checking out base ref: ${baseRef}`);
     await exec.exec("git", ["checkout", baseRef]);
     // generate hashes
+    const baseHashesPath = join(tmpdir(), "base_hashes.json");
+    const baseArgs = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      baseHashesPath,
+      options,
+    );
+    await exec.exec("java", baseArgs);
     core.info(`Calculated hashes for base ref`);
+
     // run bazel-diff
   } catch (error) {
     core.setFailed(error.message);

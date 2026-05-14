@@ -30763,11 +30763,14 @@ var __webpack_exports__ = {};
 
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
+  jz: () => (/* binding */ buildGenerateHashesArgs),
   QV: () => (/* binding */ downloadBazelDiff),
+  DZ: () => (/* binding */ getCurrentRef),
   tG: () => (/* binding */ parseGitHubEvent),
   JN: () => (/* binding */ resolveBaseRef),
   eF: () => (/* binding */ run),
-  Ax: () => (/* binding */ verifyJava)
+  Ax: () => (/* binding */ verifyJava),
+  fo: () => (/* binding */ verifyNotShallow)
 });
 
 ;// CONCATENATED MODULE: external "os"
@@ -34525,12 +34528,30 @@ const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.ur
 
 
 
+
+
 async function verifyJava() {
   try {
     await exec_exec("java", ["-version"]);
   } catch (error) {
     throw new Error(
       `Java is required but not found on the runner. Add actions/setup-java to your workflow. ${error.message}`,
+    );
+  }
+}
+
+async function verifyNotShallow() {
+  let stdout = "";
+  await exec_exec("git", ["rev-parse", "--is-shallow-repository"], {
+    listeners: {
+      stdout: (out) => {
+        stdout += out.toString();
+      },
+    },
+  });
+  if (stdout.trim() === "true") {
+    throw new Error(
+      "Repository is a shallow clone. Set fetch-depth: 0 in actions/checkout to enable full history.",
     );
   }
 }
@@ -34573,24 +34594,113 @@ async function parseGitHubEvent(filePath, eventType) {
   throw new Error(`unsupported event type: ${eventType}`);
 }
 
+async function getCurrentRef() {
+  let ref = "";
+  await exec_exec("git", ["rev-parse", "HEAD"], {
+    listeners: { stdout: (data) => (ref += data.toString()) },
+  });
+  return ref.trim();
+}
+
+function buildGenerateHashesArgs(
+  jarPath,
+  workspacePath,
+  bazelPath,
+  outputPath,
+  options,
+) {
+  const args = [
+    "-jar",
+    jarPath,
+    "generate-hashes",
+    "-w",
+    workspacePath,
+    "-b",
+    bazelPath,
+  ];
+  if (options.useCquery) args.push("--useCquery");
+  if (options.excludeExternal) args.push("--excludeExternalTargets");
+  if (options.targetType) args.push("-tt", options.targetType);
+  if (options.startupOptions) args.push("-so", options.startupOptions);
+  if (options.commandOptions) args.push("-co", options.commandOptions);
+  if (options.depEdgesFile) args.push("--depEdgesFile", options.depEdgesFile);
+  args.push(outputPath);
+  return args;
+}
+
 async function run() {
+  let originalRef;
   try {
     info("bazel-diff action starting...");
+
     await verifyJava();
+
+    await verifyNotShallow();
 
     const version = getInput("bazel-diff-version");
     const jarPath = await downloadBazelDiff(version);
     info(`bazel-diff downloaded to ${jarPath}`);
+
+    // generate hashes
+    originalRef = await getCurrentRef();
+    const headHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "head_hashes.json");
+    const workspacePath = getInput("workspace-path");
+    const bazelPath = getInput("bazel-path");
+    const options = Object.freeze({
+      useCquery: getInput("use-cquery") === "true",
+      excludeExternal: getInput("exclude-external-targets") === "true",
+      targetType: getInput("target-type"),
+      startupOptions: getInput("bazel-startup-options"),
+      commandOptions: getInput("bazel-command-options"),
+      depEdgesFile:
+        getInput("include-distance") === "true"
+          ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json")
+          : "",
+    });
+    const headArgs = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      headHashesPath,
+      options,
+    );
+    await exec_exec("java", headArgs);
+    info(`Calculated hashes for original ref: ${originalRef}`);
+
+    // checkout base
+    const baseRef = await resolveBaseRef();
+    info(`Checking out base ref: ${baseRef}`);
+    await exec_exec("git", ["checkout", baseRef]);
+    // generate hashes
+    const baseHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "base_hashes.json");
+    const baseArgs = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      baseHashesPath,
+      options,
+    );
+    await exec_exec("java", baseArgs);
+    info(`Calculated hashes for base ref`);
+
+    // run bazel-diff
   } catch (error) {
     setFailed(error.message);
+  } finally {
+    if (originalRef) {
+      await exec_exec("git", ["checkout", originalRef]);
+    }
   }
 }
 
 run();
 
+var __webpack_exports__buildGenerateHashesArgs = __webpack_exports__.jz;
 var __webpack_exports__downloadBazelDiff = __webpack_exports__.QV;
+var __webpack_exports__getCurrentRef = __webpack_exports__.DZ;
 var __webpack_exports__parseGitHubEvent = __webpack_exports__.tG;
 var __webpack_exports__resolveBaseRef = __webpack_exports__.JN;
 var __webpack_exports__run = __webpack_exports__.eF;
 var __webpack_exports__verifyJava = __webpack_exports__.Ax;
-export { __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__parseGitHubEvent as parseGitHubEvent, __webpack_exports__resolveBaseRef as resolveBaseRef, __webpack_exports__run as run, __webpack_exports__verifyJava as verifyJava };
+var __webpack_exports__verifyNotShallow = __webpack_exports__.fo;
+export { __webpack_exports__buildGenerateHashesArgs as buildGenerateHashesArgs, __webpack_exports__downloadBazelDiff as downloadBazelDiff, __webpack_exports__getCurrentRef as getCurrentRef, __webpack_exports__parseGitHubEvent as parseGitHubEvent, __webpack_exports__resolveBaseRef as resolveBaseRef, __webpack_exports__run as run, __webpack_exports__verifyJava as verifyJava, __webpack_exports__verifyNotShallow as verifyNotShallow };

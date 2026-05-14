@@ -33,6 +33,7 @@ const {
   resolveBaseRef,
   parseGitHubEvent,
   getCurrentRef,
+  buildGenerateHashesArgs,
 } = await import("./index.js");
 
 describe("verifyJava", () => {
@@ -200,5 +201,163 @@ describe("getCurrentRef", () => {
     });
     const result = await getCurrentRef();
     expect(result).toBe("abc123def456");
+  });
+});
+
+describe("buildGenerateHashesArgs", () => {
+  const jarPath = "/tmp/bazel-diff.jar";
+  const workspacePath = ".";
+  const bazelPath = "bazel";
+  const outputPath = "/tmp/hashes.json";
+
+  it("builds basic args with no options", () => {
+    const options = {
+      useCquery: false,
+      excludeExternal: false,
+      targetType: "",
+      startupOptions: "",
+      commandOptions: "",
+      depEdgesFile: "",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    expect(result).toEqual([
+      "-jar",
+      "/tmp/bazel-diff.jar",
+      "generate-hashes",
+      "-w",
+      ".",
+      "-b",
+      "bazel",
+      "/tmp/hashes.json",
+    ]);
+  });
+
+  it("includes --useCquery when enabled", () => {
+    const options = {
+      useCquery: true,
+      excludeExternal: false,
+      targetType: "",
+      startupOptions: "",
+      commandOptions: "",
+      depEdgesFile: "",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    expect(result).toContain("--useCquery");
+  });
+
+  it("includes --excludeExternalTargets when enabled", () => {
+    const options = {
+      useCquery: false,
+      excludeExternal: true,
+      targetType: "",
+      startupOptions: "",
+      commandOptions: "",
+      depEdgesFile: "",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    expect(result).toContain("--excludeExternalTargets");
+  });
+
+  it("includes target type filter", () => {
+    const options = {
+      useCquery: false,
+      excludeExternal: false,
+      targetType: "java_library,go_test",
+      startupOptions: "",
+      commandOptions: "",
+      depEdgesFile: "",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    const ttIndex = result.indexOf("-tt");
+    expect(ttIndex).toBeGreaterThan(-1);
+    expect(result[ttIndex + 1]).toBe("java_library,go_test");
+  });
+
+  it("includes startup and command options", () => {
+    const options = {
+      useCquery: false,
+      excludeExternal: false,
+      targetType: "",
+      startupOptions: "--host_jvm_args=-Xmx4g",
+      commandOptions: "--keep_going",
+      depEdgesFile: "",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    const soIndex = result.indexOf("-so");
+    expect(soIndex).toBeGreaterThan(-1);
+    expect(result[soIndex + 1]).toBe("--host_jvm_args=-Xmx4g");
+    const coIndex = result.indexOf("-co");
+    expect(coIndex).toBeGreaterThan(-1);
+    expect(result[coIndex + 1]).toBe("--keep_going");
+  });
+
+  it("includes dep edges file", () => {
+    const options = {
+      useCquery: false,
+      excludeExternal: false,
+      targetType: "",
+      startupOptions: "",
+      commandOptions: "",
+      depEdgesFile: "/tmp/dep_edges.json",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    const depIndex = result.indexOf("--depEdgesFile");
+    expect(depIndex).toBeGreaterThan(-1);
+    expect(result[depIndex + 1]).toBe("/tmp/dep_edges.json");
+  });
+
+  it("places output path last", () => {
+    const options = {
+      useCquery: true,
+      excludeExternal: true,
+      targetType: "java_test",
+      startupOptions: "--batch",
+      commandOptions: "--keep_going",
+      depEdgesFile: "/tmp/deps.json",
+    };
+    const result = buildGenerateHashesArgs(
+      jarPath,
+      workspacePath,
+      bazelPath,
+      outputPath,
+      options,
+    );
+    expect(result[result.length - 1]).toBe(outputPath);
   });
 });

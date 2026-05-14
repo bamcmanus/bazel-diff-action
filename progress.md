@@ -45,13 +45,13 @@ and push events, and reliably restores the workspace to its original state.
 
 ## Checkpoint 4: Hash Generation
 
-- [ ] Build argument array for `generate-hashes` from action inputs
-- [ ] Implement helper function to construct args (workspace path, bazel path,
+- [x] Build argument array for `generate-hashes` from action inputs
+- [x] Implement helper function to construct args (workspace path, bazel path,
       flags, output path)
-- [ ] Execute `generate-hashes` at base ref
-- [ ] Execute `generate-hashes` at head ref
-- [ ] Optionally generate dependency edges file when `include-distance` is true
-- [ ] Handle and surface errors from hash generation (Bazel failures, workspace
+- [x] Execute `generate-hashes` at base ref
+- [x] Execute `generate-hashes` at head ref
+- [x] Optionally generate dependency edges file when `include-distance` is true
+- [x] Handle and surface errors from hash generation (Bazel failures, workspace
       issues)
 
 **Done when:** The action produces two valid hash JSON files (starting and
