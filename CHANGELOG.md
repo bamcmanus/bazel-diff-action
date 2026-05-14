@@ -2,10 +2,11 @@
 
 ## [1.0.1](https://github.com/bamcmanus/bazel-diff/compare/v1.0.0...v1.0.1) (2026-05-14)
 
-
 ### Bug Fixes
 
-* use app token for post-release checkout to bypass tag protection ([#9](https://github.com/bamcmanus/bazel-diff/issues/9)) ([1d27062](https://github.com/bamcmanus/bazel-diff/commit/1d270625795a3cabb114553d1213aaf1d3e5e8cb))
+- use app token for post-release checkout to bypass tag protection
+  ([#9](https://github.com/bamcmanus/bazel-diff/issues/9))
+  ([1d27062](https://github.com/bamcmanus/bazel-diff/commit/1d270625795a3cabb114553d1213aaf1d3e5e8cb))
 
 ## 1.0.0 (2026-05-14)
 
