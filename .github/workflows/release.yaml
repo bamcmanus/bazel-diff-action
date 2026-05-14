@@ -14,7 +14,7 @@ jobs:
   release-please:
     runs-on: ubuntu-24.04
     steps:
-      - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89f4291f2343dd1dac31b # v4.2.0
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         id: release
         with:
           config-file: release-please-config.json
