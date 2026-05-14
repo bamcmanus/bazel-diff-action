@@ -3,23 +3,24 @@
 ## Overview
 
 A public, reusable GitHub Action that wraps the
-[Tinder/bazel-diff](https://github.com/Tinder/bazel-diff) tool to compute impacted Bazel targets
-between two Git revisions. The action handles downloading bazel-diff, orchestrating the hash
-generation and comparison, and exposing the results as structured outputs for downstream
-consumption.
+[Tinder/bazel-diff](https://github.com/Tinder/bazel-diff) tool to compute
+impacted Bazel targets between two Git revisions. The action handles downloading
+bazel-diff, orchestrating the hash generation and comparison, and exposing the
+results as structured outputs for downstream consumption.
 
-The action does **not** execute builds or tests — it is purely an analysis tool. Consumers decide
-what to do with the impacted target list.
+The action does **not** execute builds or tests — it is purely an analysis tool.
+Consumers decide what to do with the impacted target list.
 
 ## Goals
 
-- Provide a simple, well-documented interface for computing impacted Bazel targets in GitHub Actions
-  workflows.
-- Minimize consumer configuration — auto-detect base refs for PR workflows, bundle sensible
-  defaults.
-- Output results in a format that is easy to consume in subsequent workflow steps (both as an output
-  variable and a file).
-- Handle large monorepos gracefully (file-based output to avoid shell variable limits).
+- Provide a simple, well-documented interface for computing impacted Bazel
+  targets in GitHub Actions workflows.
+- Minimize consumer configuration — auto-detect base refs for PR workflows,
+  bundle sensible defaults.
+- Output results in a format that is easy to consume in subsequent workflow
+  steps (both as an output variable and a file).
+- Handle large monorepos gracefully (file-based output to avoid shell variable
+  limits).
 
 ## Non-Goals
 
@@ -31,18 +32,21 @@ what to do with the impacted target list.
 ## Technical Approach
 
 - **Action type:** JavaScript (Node 24), bundled with `@vercel/ncc`.
-- **bazel-diff integration:** Download the deploy JAR from GitHub Releases at runtime and invoke via
-  `java -jar` using `@actions/exec`.
-- **Git orchestration:** Check out base ref, generate hashes, check out head ref, generate hashes,
-  compute diff, restore original ref.
+- **bazel-diff integration:** Download the deploy JAR from GitHub Releases at
+  runtime and invoke via `java -jar` using `@actions/exec`.
+- **Git orchestration:** Check out base ref, generate hashes, check out head
+  ref, generate hashes, compute diff, restore original ref.
 
 ## Dependencies
 
 ### Runtime (on the GitHub Actions runner)
 
-- **Java 8+** — required to run the bazel-diff JAR. Pre-installed on `ubuntu-latest`.
-- **Bazel 3.3+** — required for hash generation. Consumer must ensure it is available.
-- **Git** — required for ref checkout. Always available on GitHub Actions runners.
+- **Java 8+** — required to run the bazel-diff JAR. Pre-installed on
+  `ubuntu-latest`.
+- **Bazel 3.3+** — required for hash generation. Consumer must ensure it is
+  available.
+- **Git** — required for ref checkout. Always available on GitHub Actions
+  runners.
 
 ### NPM packages
 
@@ -85,10 +89,11 @@ what to do with the impacted target list.
 
 Consumers must configure their workflow with:
 
-1. **Full git history** — `actions/checkout` with `fetch-depth: 0` so that base ref checkout works.
+1. **Full git history** — `actions/checkout` with `fetch-depth: 0` so that base
+   ref checkout works.
 2. **Bazel installed** — via `bazelbuild/setup-bazelisk` or equivalent.
-3. **Java available** — pre-installed on `ubuntu-latest`; self-hosted runners may need
-   `actions/setup-java`.
+3. **Java available** — pre-installed on `ubuntu-latest`; self-hosted runners
+   may need `actions/setup-java`.
 
 ## Example Usage
 
@@ -138,12 +143,12 @@ jobs:
 
 ## Error Handling
 
-- If bazel-diff download fails (bad version, network error), the action calls `core.setFailed()`
-  with a descriptive message.
-- If hash generation fails (Bazel not found, workspace invalid), the error is surfaced with the
-  underlying stderr.
-- On any failure, the action restores the original git ref in a `finally` block so the workspace is
-  not left on a detached HEAD.
+- If bazel-diff download fails (bad version, network error), the action calls
+  `core.setFailed()` with a descriptive message.
+- If hash generation fails (Bazel not found, workspace invalid), the error is
+  surfaced with the underlying stderr.
+- On any failure, the action restores the original git ref in a `finally` block
+  so the workspace is not left on a detached HEAD.
 
 ## Future Considerations
 

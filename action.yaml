@@ -58,9 +58,9 @@ inputs:
     default: ""
 
 outputs:
-  impacted_targets:
+  impacted-targets:
     description: "Newline-separated list of impacted Bazel targets."
-  impacted_targets_file:
+  impacted-targets_file:
     description: "Absolute path to a file containing the impacted targets."
   has-changes:
     description: "Whether any targets were impacted (true/false)."

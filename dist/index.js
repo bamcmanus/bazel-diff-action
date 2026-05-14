@@ -34538,6 +34538,7 @@ async function verifyJava() {
   } catch (error) {
     throw new Error(
       `Java is required but not found on the runner. Add actions/setup-java to your workflow. ${error.message}`,
+      { cause: error },
     );
   }
 }
@@ -34546,9 +34547,9 @@ async function verifyBazel(bazelPath) {
   try {
     await exec_exec(bazelPath, ["--version"]);
   } catch (error) {
-    throw new Error(
-      `Bazel is required but not found on the runner: ${error.message}`,
-    );
+    throw new Error(`Bazel is required but not found on the runner: ${error.message}`, {
+      cause: error,
+    });
   }
 }
 
@@ -34614,22 +34615,8 @@ async function getCurrentRef() {
   return ref.trim();
 }
 
-function buildGenerateHashesArgs(
-  jarPath,
-  workspacePath,
-  bazelPath,
-  outputPath,
-  options,
-) {
-  const args = [
-    "-jar",
-    jarPath,
-    "generate-hashes",
-    "-w",
-    workspacePath,
-    "-b",
-    bazelPath,
-  ];
+function buildGenerateHashesArgs(jarPath, workspacePath, bazelPath, outputPath, options) {
+  const args = ["-jar", jarPath, "generate-hashes", "-w", workspacePath, "-b", bazelPath];
   if (options.useCquery) args.push("--useCquery");
   if (options.excludeExternal) args.push("--excludeExternalTargets");
   if (options.targetType) args.push("-tt", options.targetType);
@@ -34696,9 +34683,7 @@ async function run() {
       startupOptions: getInput("bazel-startup-options"),
       commandOptions: getInput("bazel-command-options"),
       depEdgesFile:
-        getInput("include-distance") === "true"
-          ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json")
-          : "",
+        getInput("include-distance") === "true" ? (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "dep_edges.json") : "",
     });
     if (options.depEdgesFile) tempFiles.push(options.depEdgesFile);
     const headArgs = buildGenerateHashesArgs(
@@ -34760,7 +34745,7 @@ async function run() {
     if (originalRef) {
       try {
         await exec_exec("git", ["checkout", originalRef]);
-      } catch (error) {
+      } catch {
         warning(`failed to restore original ref: ${originalRef}`);
       }
     }

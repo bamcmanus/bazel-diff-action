@@ -11,6 +11,7 @@ export async function verifyJava() {
   } catch (error) {
     throw new Error(
       `Java is required but not found on the runner. Add actions/setup-java to your workflow. ${error.message}`,
+      { cause: error },
     );
   }
 }
@@ -21,6 +22,9 @@ export async function verifyBazel(bazelPath) {
   } catch (error) {
     throw new Error(
       `Bazel is required but not found on the runner: ${error.message}`,
+      {
+        cause: error,
+      },
     );
   }
 }
@@ -233,7 +237,7 @@ export async function run() {
     if (originalRef) {
       try {
         await exec.exec("git", ["checkout", originalRef]);
-      } catch (error) {
+      } catch {
         core.warning(`failed to restore original ref: ${originalRef}`);
       }
     }
