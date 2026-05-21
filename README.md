@@ -3,6 +3,7 @@
 [![CI](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bamcmanus/bazel-diff-action/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bamcmanus/bazel-diff-action)
 [![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12927/badge)](https://www.bestpractices.dev/projects/12927)
 
 A GitHub Action that computes impacted Bazel targets between two Git revisions
 using [bazel-diff](https://github.com/Tinder/bazel-diff) by
