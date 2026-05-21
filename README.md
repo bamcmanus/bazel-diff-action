@@ -1,6 +1,8 @@
 # bazel-diff-action
 
 [![CI](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bamcmanus/bazel-diff-action/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bamcmanus/bazel-diff-action)
+[![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
 
 A GitHub Action that computes impacted Bazel targets between two Git revisions
 using [bazel-diff](https://github.com/Tinder/bazel-diff) by
@@ -128,6 +130,12 @@ Base ref auto-detection works with:
 
 For other event types (e.g. `workflow_dispatch`), provide `base-ref` explicitly
 or the action will fall back to `HEAD~1`.
+
+## Security
+
+All releases include a [SLSA provenance attestation](https://slsa.dev) that can
+be used to verify the `dist/index.js` artifact was built from this source. See
+[SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## License
 
