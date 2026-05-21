@@ -34692,7 +34692,7 @@ async function run() {
     originalRef = await getCurrentRef();
     const headHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "head_hashes.json");
     tempFiles.push(headHashesPath);
-    const workspacePath = getInput("workspace-path");
+    const workspacePath = (0,external_path_namespaceObject.resolve)(getInput("workspace-path"));
     const options = Object.freeze({
       useCquery: getInput("use-cquery") === "true",
       excludeExternal: getInput("exclude-external-targets") === "true",

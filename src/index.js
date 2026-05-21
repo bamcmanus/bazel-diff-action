@@ -3,7 +3,7 @@ import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 import { readFile, unlink } from "fs/promises";
 import { tmpdir } from "os";
-import { join } from "path";
+import { join, resolve } from "path";
 
 export async function verifyJava() {
   try {
@@ -165,7 +165,7 @@ export async function run() {
     originalRef = await getCurrentRef();
     const headHashesPath = join(tmpdir(), "head_hashes.json");
     tempFiles.push(headHashesPath);
-    const workspacePath = core.getInput("workspace-path");
+    const workspacePath = resolve(core.getInput("workspace-path"));
     const options = Object.freeze({
       useCquery: core.getInput("use-cquery") === "true",
       excludeExternal: core.getInput("exclude-external-targets") === "true",

@@ -1,10 +1,13 @@
 import { jest } from "@jest/globals";
+import { isAbsolute } from "path";
 
 // Mock dependencies before importing the module under test
 const mockExec = jest.fn();
 const mockGetInput = jest.fn();
 const mockInfo = jest.fn();
 const mockSetFailed = jest.fn();
+const mockSetOutput = jest.fn();
+const mockWarning = jest.fn();
 const mockDownloadTool = jest.fn();
 const mockReadFile = jest.fn();
 
@@ -16,6 +19,8 @@ jest.unstable_mockModule("@actions/core", () => ({
   getInput: mockGetInput,
   info: mockInfo,
   setFailed: mockSetFailed,
+  setOutput: mockSetOutput,
+  warning: mockWarning,
 }));
 
 jest.unstable_mockModule("@actions/tool-cache", () => ({
@@ -37,6 +42,7 @@ const {
   buildGenerateHashesArgs,
   buildGetImpactedTargetArgs,
   verifyBazel,
+  run,
 } = await import("./index.js");
 
 describe("verifyJava", () => {
@@ -481,5 +487,50 @@ describe("buildGetImpactedTargetArgs", () => {
     const depIndex = result.indexOf("--depEdgesFile");
     expect(depIndex).toBeGreaterThan(-1);
     expect(result[depIndex + 1]).toBe("/tmp/dep_edges.json");
+  });
+});
+
+describe("run", () => {
+  const inputDefaults = {
+    "bazel-path": "bazel",
+    "workspace-path": ".",
+    "bazel-diff-version": "latest",
+    "base-ref": "base-sha",
+    "use-cquery": "false",
+    "exclude-external-targets": "false",
+    "target-type": "",
+    "bazel-startup-options": "",
+    "bazel-command-options": "",
+    "include-distance": "false",
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetInput.mockImplementation((key) => inputDefaults[key] ?? "");
+    mockExec.mockImplementation((cmd, args, options) => {
+      if (cmd === "git" && args[1] === "--is-shallow-repository") {
+        options.listeners.stdout(Buffer.from("false\n"));
+      }
+      if (cmd === "git" && args[0] === "rev-parse" && args[1] === "HEAD") {
+        options.listeners.stdout(Buffer.from("headsha123\n"));
+      }
+      return Promise.resolve(0);
+    });
+    mockDownloadTool.mockResolvedValue("/tmp/bazel-diff.jar");
+    mockReadFile.mockResolvedValue("//some:target");
+  });
+
+  it("resolves workspace-path '.' to an absolute path before passing to the JAR", async () => {
+    await run();
+
+    expect(mockSetFailed).not.toHaveBeenCalled();
+    const javaExecCalls = mockExec.mock.calls.filter(([cmd]) => cmd === "java");
+    expect(javaExecCalls.length).toBeGreaterThan(0);
+    for (const [, args] of javaExecCalls) {
+      const wIndex = args.indexOf("-w");
+      if (wIndex !== -1) {
+        expect(isAbsolute(args[wIndex + 1])).toBe(true);
+      }
+    }
   });
 });
