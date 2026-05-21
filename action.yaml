@@ -1,4 +1,4 @@
-name: bazel-diff
+name: bazel-diff-action
 description:
   Compute impacted Bazel targets between two Git revisions using bazel-diff
 author: bamcmanus

@@ -1,5 +1,5 @@
 {
-  "name": "bazel-diff",
+  "name": "bazel-diff-action",
   "type": "module",
   "version": "1.0.0",
   "description": "GHA for executing tinder's bazel-diff utility",

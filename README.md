@@ -1,6 +1,6 @@
 # bazel-diff-action
 
-[![CI](https://github.com/bamcmanus/bazel-diff/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/bamcmanus/bazel-diff/actions/workflows/ci.yaml)
+[![CI](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/bamcmanus/bazel-diff-action/actions/workflows/ci.yaml)
 
 A GitHub Action that computes impacted Bazel targets between two Git revisions
 using [bazel-diff](https://github.com/Tinder/bazel-diff) by
@@ -37,7 +37,7 @@ jobs:
 
       - uses: bazelbuild/setup-bazelisk@v3
 
-      - uses: bamcmanus/bazel-diff@v1
+      - uses: bamcmanus/bazel-diff-action@v1
         id: diff
 
       - name: Test impacted targets
@@ -48,7 +48,7 @@ jobs:
 ### Filter to specific target types
 
 ```yaml
-- uses: bamcmanus/bazel-diff@v1
+- uses: bamcmanus/bazel-diff-action@v1
   id: diff
   with:
     target-type: "*_test"
@@ -58,7 +58,7 @@ jobs:
 ### With distance metrics
 
 ```yaml
-- uses: bamcmanus/bazel-diff@v1
+- uses: bamcmanus/bazel-diff-action@v1
   id: diff
   with:
     include-distance: true
@@ -72,7 +72,7 @@ jobs:
 ### Explicit base ref
 
 ```yaml
-- uses: bamcmanus/bazel-diff@v1
+- uses: bamcmanus/bazel-diff-action@v1
   id: diff
   with:
     base-ref: main
