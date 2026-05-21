@@ -77,6 +77,13 @@ describe("verifyNotShallow", () => {
     await expect(verifyNotShallow()).resolves.not.toThrow();
   });
 
+  it("throws a helpful message when git exec fails", async () => {
+    mockExec.mockRejectedValue(new Error("git not found"));
+    await expect(verifyNotShallow()).rejects.toThrow(
+      /Failed to check repository depth/,
+    );
+  });
+
   it("throws when repository is shallow", async () => {
     mockExec.mockImplementation((cmd, args, options) => {
       options.listeners.stdout(Buffer.from("true\n"));
@@ -144,6 +151,14 @@ describe("parseGitHubEvent", () => {
       parseGitHubEvent("/tmp/event.json", "schedule"),
     ).rejects.toThrow(/unsupported event type: schedule/);
   });
+
+  it("throws when push event has null SHA as before", async () => {
+    const payload = { before: "0000000000000000000000000000000000000000" };
+    mockReadFile.mockResolvedValue(JSON.stringify(payload));
+    await expect(parseGitHubEvent("/tmp/event.json", "push")).rejects.toThrow(
+      /Push event has no previous commit/,
+    );
+  });
 });
 
 describe("resolveBaseRef", () => {
@@ -180,6 +195,15 @@ describe("resolveBaseRef", () => {
     delete process.env.GITHUB_EVENT_NAME;
     const result = await resolveBaseRef();
     expect(result).toBe("HEAD~1");
+  });
+
+  it("throws when GITHUB_EVENT_PATH is set but GITHUB_EVENT_NAME is missing", async () => {
+    mockGetInput.mockReturnValue("");
+    process.env.GITHUB_EVENT_PATH = "/tmp/event.json";
+    delete process.env.GITHUB_EVENT_NAME;
+    await expect(resolveBaseRef()).rejects.toThrow(
+      /GITHUB_EVENT_PATH is set but GITHUB_EVENT_NAME is missing/,
+    );
   });
 });
 
@@ -532,5 +556,26 @@ describe("run", () => {
         expect(isAbsolute(args[wIndex + 1])).toBe(true);
       }
     }
+  });
+
+  it("handles include-distance output as JSON", async () => {
+    mockGetInput.mockImplementation(
+      (key) =>
+        ({
+          ...inputDefaults,
+          "include-distance": "true",
+        })[key] ?? "",
+    );
+    mockReadFile.mockResolvedValue(
+      JSON.stringify([
+        { label: "//some:target", targetDistance: 1, packageDistance: 1 },
+      ]),
+    );
+
+    await run();
+
+    expect(mockSetFailed).not.toHaveBeenCalled();
+    expect(mockSetOutput).toHaveBeenCalledWith("has-changes", "true");
+    expect(mockSetOutput).toHaveBeenCalledWith("target-count", "1");
   });
 });

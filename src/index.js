@@ -31,13 +31,20 @@ export async function verifyBazel(bazelPath) {
 
 export async function verifyNotShallow() {
   let stdout = "";
-  await exec.exec("git", ["rev-parse", "--is-shallow-repository"], {
-    listeners: {
-      stdout: (out) => {
-        stdout += out.toString();
+  try {
+    await exec.exec("git", ["rev-parse", "--is-shallow-repository"], {
+      listeners: {
+        stdout: (out) => {
+          stdout += out.toString();
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to check repository depth — ensure this action runs inside a git repository. ${error.message}`,
+      { cause: error },
+    );
+  }
   if (stdout.trim() === "true") {
     throw new Error(
       "Repository is a shallow clone. Set fetch-depth: 0 in actions/checkout to enable full history.",
@@ -64,6 +71,11 @@ export async function resolveBaseRef() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   if (eventPath) {
     const event = process.env.GITHUB_EVENT_NAME;
+    if (!event) {
+      throw new Error(
+        "GITHUB_EVENT_PATH is set but GITHUB_EVENT_NAME is missing — cannot determine base ref. Provide base-ref explicitly.",
+      );
+    }
     return parseGitHubEvent(eventPath, event);
   }
   return "HEAD~1";
@@ -75,6 +87,11 @@ export async function parseGitHubEvent(filePath, eventType) {
     return event.pull_request.base.sha;
   }
   if (eventType === "push") {
+    if (event.before === "0000000000000000000000000000000000000000") {
+      throw new Error(
+        "Push event has no previous commit — this may be the first push to this branch. Provide base-ref explicitly.",
+      );
+    }
     return event.before;
   }
   if (eventType === "merge_group") {
@@ -220,7 +237,6 @@ export async function run() {
     // set outputs
     const output = await readFile(impactedTargetsPath, "utf8");
     const targets = output.trim();
-    const targetList = targets === "" ? [] : targets.split("\n");
     core.setOutput("impacted-targets", targets);
     core.setOutput("impacted-targets-file", impactedTargetsPath);
     if (options.depEdgesFile) {
@@ -228,6 +244,7 @@ export async function run() {
       core.setOutput("has-changes", (parsed.length > 0).toString());
       core.setOutput("target-count", parsed.length.toString());
     } else {
+      const targetList = targets === "" ? [] : targets.split("\n");
       core.setOutput("has-changes", (targetList.length > 0).toString());
       core.setOutput("target-count", targetList.length.toString());
     }
