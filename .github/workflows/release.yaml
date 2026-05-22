@@ -26,7 +26,7 @@ jobs:
           client-id: ${{ vars.BAZEL_DIFF_RELEASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.BAZEL_DIFF_RELEASE_BOT_PRIVATE_KEY }}
 
-      - uses: googleapis/release-please-action@0dfd8538845b8e92600d271a895a5372865d4062 # v5
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         id: release
         with:
           token: ${{ steps.app-token.outputs.token }}
