@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.1](https://github.com/bamcmanus/bazel-diff-action/compare/v1.0.0...v1.0.1) (2026-05-22)
+
+### Bug Fixes
+
+- add top-level read-all permissions to release workflow
+  ([#24](https://github.com/bamcmanus/bazel-diff-action/issues/24))
+  ([e9bc22c](https://github.com/bamcmanus/bazel-diff-action/commit/e9bc22c08318c810b262bb925c55900d724a80d4))
+- final checks before marketplace release
+  ([#26](https://github.com/bamcmanus/bazel-diff-action/issues/26))
+  ([c759436](https://github.com/bamcmanus/bazel-diff-action/commit/c7594365a0c2800bdd96ff460e7444abb4fee624))
+- resolve workspace-path to absolute path before passing to JAR
+  ([#15](https://github.com/bamcmanus/bazel-diff-action/issues/15))
+  ([e0e1fee](https://github.com/bamcmanus/bazel-diff-action/commit/e0e1feefeb4c0019a0c867a6b937d483a594d54c))
+- use app token for post-release checkout to bypass tag protection
+  ([#9](https://github.com/bamcmanus/bazel-diff-action/issues/9))
+  ([1d27062](https://github.com/bamcmanus/bazel-diff-action/commit/1d270625795a3cabb114553d1213aaf1d3e5e8cb))
+- use git add -u in release workflow to avoid pathspec errors
+  ([#27](https://github.com/bamcmanus/bazel-diff-action/issues/27))
+  ([260ef90](https://github.com/bamcmanus/bazel-diff-action/commit/260ef90ef5ffe63769e8b15525ed2f6424630ed1))
+
 ## 1.0.0 (2026-05-14)
 
 ### Features
