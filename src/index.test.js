@@ -593,7 +593,7 @@ describe("run", () => {
     }
   });
 
-  it("handles include-distance output as JSON", async () => {
+  it("uses head dependency edges for distance output", async () => {
     mockGetInput.mockImplementation(
       (key) =>
         ({
@@ -610,6 +610,23 @@ describe("run", () => {
     await run();
 
     expect(mockSetFailed).not.toHaveBeenCalled();
+    const generateHashesArgs = mockExec.mock.calls
+      .filter(
+        ([cmd, args]) => cmd === "java" && args.includes("generate-hashes"),
+      )
+      .map(([, args]) => args);
+    expect(generateHashesArgs).toHaveLength(2);
+    const [headArgs, baseArgs] = generateHashesArgs;
+    const depEdgesIndex = headArgs.indexOf("--depEdgesFile");
+    expect(depEdgesIndex).toBeGreaterThan(-1);
+    const depEdgesPath = headArgs[depEdgesIndex + 1];
+    expect(baseArgs).not.toContain("--depEdgesFile");
+    const impactedArgs = mockExec.mock.calls.find(
+      ([cmd, args]) => cmd === "java" && args.includes("get-impacted-targets"),
+    )[1];
+    expect(impactedArgs).toEqual(
+      expect.arrayContaining(["--depEdgesFile", depEdgesPath]),
+    );
     expect(mockSetOutput).toHaveBeenCalledWith("has-changes", "true");
     expect(mockSetOutput).toHaveBeenCalledWith("target-count", "1");
   });
