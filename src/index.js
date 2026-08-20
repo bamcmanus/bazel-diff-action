@@ -180,6 +180,9 @@ export async function run() {
 
     // generate head hashes
     originalRef = await getCurrentRef();
+    const headRef = core.getInput("head-ref");
+    core.info(`Checking out head ref: ${headRef}`);
+    await exec.exec("git", ["checkout", headRef]);
     const headHashesPath = join(tmpdir(), "head_hashes.json");
     tempFiles.push(headHashesPath);
     const workspacePath = resolve(core.getInput("workspace-path"));
@@ -203,7 +206,8 @@ export async function run() {
       options,
     );
     await exec.exec("java", headArgs);
-    core.info(`Calculated hashes for original ref: ${originalRef}`);
+    const resolvedHeadRef = await getCurrentRef();
+    core.info(`Calculated hashes for head ref: ${resolvedHeadRef}`);
 
     // generate base hashes
     const baseRef = await resolveBaseRef();
