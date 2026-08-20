@@ -35007,7 +35007,7 @@ async function run() {
       workspacePath,
       bazelPath,
       baseHashesPath,
-      options,
+      { ...options, depEdgesFile: "" },
     );
     await exec_exec("java", baseArgs);
     info(`Calculated hashes for base ref`);

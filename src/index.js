@@ -220,7 +220,7 @@ export async function run() {
       workspacePath,
       bazelPath,
       baseHashesPath,
-      options,
+      { ...options, depEdgesFile: "" },
     );
     await exec.exec("java", baseArgs);
     core.info(`Calculated hashes for base ref`);
