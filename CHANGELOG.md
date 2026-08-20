@@ -2,12 +2,17 @@
 
 ## [1.0.2](https://github.com/bamcmanus/bazel-diff-action/compare/v1.0.1...v1.0.2) (2026-08-20)
 
-
 ### Bug Fixes
 
-* **deps:** resolve npm audit vulnerabilities ([#46](https://github.com/bamcmanus/bazel-diff-action/issues/46)) ([3c28315](https://github.com/bamcmanus/bazel-diff-action/commit/3c283151f50a89b309594c81548d3ae5202defbc))
-* honor head-ref input ([#54](https://github.com/bamcmanus/bazel-diff-action/issues/54)) ([6e8ef20](https://github.com/bamcmanus/bazel-diff-action/commit/6e8ef200d6e8d129a9b068c8194072a697cb80a2))
-* preserve head dependency edges ([#55](https://github.com/bamcmanus/bazel-diff-action/issues/55)) ([792e4c0](https://github.com/bamcmanus/bazel-diff-action/commit/792e4c0c59e8280d4b0d9971b30a4b1532711f16))
+- **deps:** resolve npm audit vulnerabilities
+  ([#46](https://github.com/bamcmanus/bazel-diff-action/issues/46))
+  ([3c28315](https://github.com/bamcmanus/bazel-diff-action/commit/3c283151f50a89b309594c81548d3ae5202defbc))
+- honor head-ref input
+  ([#54](https://github.com/bamcmanus/bazel-diff-action/issues/54))
+  ([6e8ef20](https://github.com/bamcmanus/bazel-diff-action/commit/6e8ef200d6e8d129a9b068c8194072a697cb80a2))
+- preserve head dependency edges
+  ([#55](https://github.com/bamcmanus/bazel-diff-action/issues/55))
+  ([792e4c0](https://github.com/bamcmanus/bazel-diff-action/commit/792e4c0c59e8280d4b0d9971b30a4b1532711f16))
 
 ## [1.0.1](https://github.com/bamcmanus/bazel-diff-action/compare/v1.0.0...v1.0.1) (2026-05-22)
 
