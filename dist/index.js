@@ -34967,6 +34967,9 @@ async function run() {
 
     // generate head hashes
     originalRef = await getCurrentRef();
+    const headRef = getInput("head-ref");
+    info(`Checking out head ref: ${headRef}`);
+    await exec_exec("git", ["checkout", headRef]);
     const headHashesPath = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.tmpdir)(), "head_hashes.json");
     tempFiles.push(headHashesPath);
     const workspacePath = (0,external_path_namespaceObject.resolve)(getInput("workspace-path"));
@@ -34990,7 +34993,8 @@ async function run() {
       options,
     );
     await exec_exec("java", headArgs);
-    info(`Calculated hashes for original ref: ${originalRef}`);
+    const resolvedHeadRef = await getCurrentRef();
+    info(`Calculated hashes for head ref: ${resolvedHeadRef}`);
 
     // generate base hashes
     const baseRef = await resolveBaseRef();
